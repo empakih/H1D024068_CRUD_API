@@ -5,7 +5,7 @@
 | **Nama** | Muhammad Faqih Muhyiddin |
 | **NIM** | H1D024068 |
 | **Shift** | D (KRS: E) |
-| **Aplikasi Flutter** | `tokokita` (`c:\Users\faqih\AndroidStudioProjects\tokokita`) |
+| **Aplikasi Flutter** | `tokokita` |
 | **Backend REST API** | CodeIgniter 4 (`backend_api/toko-api` & `C:\xampp\htdocs\toko-api`) |
 | **Database** | MySQL / MariaDB (`database/toko_api.sql`) |
 
@@ -20,7 +20,12 @@ Praktikum ini mengimplementasikan integrasi arsitektur sistem client-server mela
 
 ---
 
-## 2. Struktur Repositori Terpadu (All-in-One Repository)
+## 2. Demo Video
+https://github.com/user-attachments/assets/497b3188-a6f5-4dae-8e44-9f606c18fa3d
+
+---
+
+## 3. Struktur Repositori Terpadu (All-in-One Repository)
 
 Seluruh komponen pendukung (Frontend Flutter, Source Code Backend API, dan Skema Database) telah disatukan di dalam repositori ini:
 
