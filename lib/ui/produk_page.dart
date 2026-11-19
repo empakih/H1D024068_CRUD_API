@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/helpers/api.dart';
-import 'package:tokokita/helpers/user_info.dart';
+import 'package:tokokita/bloc/logout_bloc.dart';
+import 'package:tokokita/bloc/produk_bloc.dart';
 import 'package:tokokita/model/produk.dart';
 import 'package:tokokita/ui/login_page.dart';
 import 'package:tokokita/ui/produk_detail.dart';
@@ -14,20 +14,6 @@ class ProdukPage extends StatefulWidget {
 }
 
 class _ProdukPageState extends State<ProdukPage> {
-  late Future<List<Produk>> _futureProduk;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshProduk();
-  }
-
-  void _refreshProduk() {
-    setState(() {
-      _futureProduk = ApiService.getProduk();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +29,7 @@ class _ProdukPageState extends State<ProdukPage> {
                   context,
                   MaterialPageRoute(builder: (context) => ProdukForm()),
                 );
-                _refreshProduk();
+                setState(() {});
               },
             ),
           )
@@ -56,7 +42,7 @@ class _ProdukPageState extends State<ProdukPage> {
               title: const Text('Logout'),
               trailing: const Icon(Icons.logout),
               onTap: () async {
-                await UserInfo.logout();
+                await LogoutBloc.logout();
                 if (!context.mounted) return;
                 Navigator.pushReplacement(
                   context,
@@ -67,75 +53,53 @@ class _ProdukPageState extends State<ProdukPage> {
           ],
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => _refreshProduk(),
-        child: FutureBuilder<List<Produk>>(
-          future: _futureProduk,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: Colors.red),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Gagal memuat data produk:\n${snapshot.error}',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _refreshProduk,
-                        child: const Text('Coba Lagi'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            final list = snapshot.data ?? [];
-            if (list.isEmpty) {
-              return const Center(
-                child: Text('Belum ada data produk.\nTekan tombol + untuk menambah.',
-                    textAlign: TextAlign.center),
-              );
-            }
-
-            return ListView.builder(
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                return ItemProduk(
-                  produk: list[index],
-                  onChanged: _refreshProduk,
+      body: FutureBuilder<List>(
+        future: ProdukBloc.getProduks(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint(snapshot.error.toString());
+          }
+          return snapshot.hasData
+              ? ListProduk(
+                  list: snapshot.data,
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
                 );
-              },
-            );
-          },
-        ),
+        },
       ),
+    );
+  }
+}
+
+class ListProduk extends StatelessWidget {
+  final List? list;
+
+  const ListProduk({super.key, this.list});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: list == null ? 0 : list!.length,
+      itemBuilder: (context, i) {
+        return ItemProduk(
+          produk: list![i],
+        );
+      },
     );
   }
 }
 
 class ItemProduk extends StatelessWidget {
   final Produk produk;
-  final VoidCallback? onChanged;
 
-  const ItemProduk({super.key, required this.produk, this.onChanged});
+  const ItemProduk({super.key, required this.produk});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        await Navigator.push(
+      onTap: () {
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ProdukDetail(
@@ -143,17 +107,11 @@ class ItemProduk extends StatelessWidget {
             ),
           ),
         );
-        onChanged?.call();
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: ListTile(
           title: Text(produk.namaProduk ?? ''),
-          subtitle: Text('Rp. ${produk.hargaProduk?.toString() ?? '0'}'),
-          trailing: Text(
-            produk.kodeProduk ?? '',
-            style: const TextStyle(color: Colors.grey),
-          ),
+          subtitle: Text(produk.hargaProduk.toString()),
         ),
       ),
     );

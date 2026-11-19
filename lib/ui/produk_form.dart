@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/helpers/api.dart';
+import 'package:tokokita/bloc/produk_bloc.dart';
 import 'package:tokokita/model/produk.dart';
+import 'package:tokokita/ui/produk_page.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 // ignore: must_be_immutable
 class ProdukForm extends StatefulWidget {
@@ -58,7 +60,7 @@ class _ProdukFormState extends State<ProdukForm> {
       appBar: AppBar(title: Text(judul)),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -66,7 +68,6 @@ class _ProdukFormState extends State<ProdukForm> {
                 _kodeProdukTextField(),
                 _namaProdukTextField(),
                 _hargaProdukTextField(),
-                const SizedBox(height: 24),
                 _buttonSubmit()
               ],
             ),
@@ -83,7 +84,7 @@ class _ProdukFormState extends State<ProdukForm> {
       keyboardType: TextInputType.text,
       controller: _kodeProdukTextboxController,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value.isEmpty) {
           return "Kode Produk harus diisi";
         }
         return null;
@@ -98,7 +99,7 @@ class _ProdukFormState extends State<ProdukForm> {
       keyboardType: TextInputType.text,
       controller: _namaProdukTextboxController,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value.isEmpty) {
           return "Nama Produk harus diisi";
         }
         return null;
@@ -113,11 +114,8 @@ class _ProdukFormState extends State<ProdukForm> {
       keyboardType: TextInputType.number,
       controller: _hargaProdukTextboxController,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value.isEmpty) {
           return "Harga harus diisi";
-        }
-        if (int.tryParse(value.trim()) == null) {
-          return "Harga harus berupa angka";
         }
         return null;
       },
@@ -126,88 +124,75 @@ class _ProdukFormState extends State<ProdukForm> {
 
   // Membuat Tombol Simpan/Ubah
   Widget _buttonSubmit() {
-    return _isLoading
-        ? const CircularProgressIndicator()
-        : SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              child: Text(tombolSubmit),
-              onPressed: () {
-                var validate = _formKey.currentState!.validate();
-                if (validate) {
-                  _simpanData();
-                }
-              },
-            ),
-          );
+    return OutlinedButton(
+      child: Text(tombolSubmit),
+      onPressed: () {
+        var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) {
+            if (widget.produk != null) {
+              // kondisi update produk
+              ubah();
+            } else {
+              // kondisi tambah produk
+              simpan();
+            }
+          }
+        }
+      },
+    );
   }
 
-  void _simpanData() {
+  void simpan() {
     setState(() {
       _isLoading = true;
     });
-
-    Produk createProduk = Produk(
-      id: widget.produk?.id,
-      kodeProduk: _kodeProdukTextboxController.text.trim(),
-      namaProduk: _namaProdukTextboxController.text.trim(),
-      hargaProduk: int.parse(_hargaProdukTextboxController.text.trim()),
-    );
-
-    if (widget.produk != null) {
-      // Mode Ubah
-      ApiService.updateProduk(createProduk).then((success) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
-        if (success) {
-          Navigator.pop(context, true);
-        } else {
-          _showErrorDialog("Gagal mengubah data produk");
-        }
-      }).catchError((error) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog("Koneksi Error: $error");
-      });
-    } else {
-      // Mode Tambah
-      ApiService.addProduk(createProduk).then((success) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
-        if (success) {
-          Navigator.pop(context, true);
-        } else {
-          _showErrorDialog("Gagal menambah data produk");
-        }
-      }).catchError((error) {
-        if (!mounted) return;
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorDialog("Koneksi Error: $error");
-      });
-    }
+    Produk createProduk = Produk(id: null);
+    createProduk.kodeProduk = _kodeProdukTextboxController.text;
+    createProduk.namaProduk = _namaProdukTextboxController.text;
+    createProduk.hargaProduk = int.parse(_hargaProdukTextboxController.text);
+    ProdukBloc.addProduk(produk: createProduk).then((value) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (BuildContext context) => const ProdukPage()));
+    }, onError: (error) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Simpan gagal, silahkan coba lagi",
+        ),
+      );
+    });
+    setState(() {
+      _isLoading = false;
+    });
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Peringatan"),
-        content: Text(message),
-        actions: [
-          ElevatedButton(
-            child: const Text("OK"),
-            onPressed: () => Navigator.pop(context),
-          )
-        ],
-      ),
-    );
+  void ubah() {
+    setState(() {
+      _isLoading = true;
+    });
+    Produk updateProduk = Produk(id: null);
+    updateProduk.id = widget.produk!.id;
+    updateProduk.kodeProduk = _kodeProdukTextboxController.text;
+    updateProduk.namaProduk = _namaProdukTextboxController.text;
+    updateProduk.hargaProduk = int.parse(_hargaProdukTextboxController.text);
+    ProdukBloc.updateProduk(produk: updateProduk).then((value) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (BuildContext context) => const ProdukPage()));
+    }, onError: (error) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Permintaan ubah data gagal, silahkan coba lagi",
+        ),
+      );
+    });
+    setState(() {
+      _isLoading = false;
+    });
   }
 }

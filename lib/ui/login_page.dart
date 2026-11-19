@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/helpers/api.dart';
+import 'package:tokokita/bloc/login_bloc.dart';
 import 'package:tokokita/helpers/user_info.dart';
 import 'package:tokokita/ui/produk_page.dart';
 import 'package:tokokita/ui/registrasi_page.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -33,17 +34,18 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
                 _emailTextField(),
                 _passwordTextField(),
-                const SizedBox(height: 24),
                 _buttonLogin(),
-                const SizedBox(height: 30),
-                _menuRegistrasi(),
+                const SizedBox(
+                  height: 30,
+                ),
+                _menuRegistrasi()
               ],
             ),
           ),
@@ -59,7 +61,8 @@ class _LoginPageState extends State<LoginPage> {
       keyboardType: TextInputType.emailAddress,
       controller: _emailTextboxController,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        // validasi harus diisi
+        if (value == null || value.isEmpty) {
           return 'Email harus diisi';
         }
         return null;
@@ -75,6 +78,7 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: true,
       controller: _passwordTextboxController,
       validator: (value) {
+        // jika karakter yang dimasukkan kurang dari 6 karakter
         if (value == null || value.isEmpty) {
           return "Password harus diisi";
         }
@@ -85,41 +89,29 @@ class _LoginPageState extends State<LoginPage> {
 
   // Membuat Tombol Login
   Widget _buttonLogin() {
-    return _isLoading
-        ? const CircularProgressIndicator()
-        : SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              child: const Text("Login"),
-              onPressed: () {
-                var validate = _formKey.currentState!.validate();
-                if (validate) {
-                  _prosesLogin();
-                }
-              },
-            ),
-          );
+    return ElevatedButton(
+      child: const Text("Login"),
+      onPressed: () {
+        var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) _submit();
+        }
+      },
+    );
   }
 
-  void _prosesLogin() {
+  void _submit() {
+    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
     });
-
-    ApiService.login(
-      email: _emailTextboxController.text.trim(),
+    LoginBloc.login(
+      email: _emailTextboxController.text,
       password: _passwordTextboxController.text,
-    ).then((res) async {
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (res.status == true && res.token != null) {
-        await UserInfo.setToken(res.token!);
-        if (res.userID != null) {
-          await UserInfo.setUserID(res.userID!);
-        }
-
+    ).then((value) async {
+      if (value.code == 200 && value.token != null) {
+        await UserInfo().setToken(value.token.toString());
+        await UserInfo().setUserID(int.parse(value.userID.toString()));
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -129,37 +121,24 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
         showDialog(
           context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text("Login Gagal"),
-            content: Text(res.message ?? "Email atau Password salah!"),
-            actions: [
-              ElevatedButton(
-                child: const Text("OK"),
-                onPressed: () => Navigator.pop(context),
-              )
-            ],
+          barrierDismissible: false,
+          builder: (BuildContext context) => WarningDialog(
+            description: value.message ?? "Login gagal, silahkan coba lagi",
           ),
         );
       }
-    }).catchError((error) {
-      setState(() {
-        _isLoading = false;
-      });
-
+    }, onError: (error) {
       if (!mounted) return;
       showDialog(
         context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text("Koneksi Error"),
-          content: Text("Gagal terhubung ke server API:\n$error"),
-          actions: [
-            ElevatedButton(
-              child: const Text("OK"),
-              onPressed: () => Navigator.pop(context),
-            )
-          ],
+        barrierDismissible: false,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Login gagal, silahkan coba lagi",
         ),
       );
+    });
+    setState(() {
+      _isLoading = false;
     });
   }
 

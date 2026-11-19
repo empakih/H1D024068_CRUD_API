@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/helpers/api.dart';
+import 'package:tokokita/bloc/produk_bloc.dart';
 import 'package:tokokita/model/produk.dart';
 import 'package:tokokita/ui/produk_form.dart';
+import 'package:tokokita/ui/produk_page.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 // ignore: must_be_immutable
 class ProdukDetail extends StatefulWidget {
@@ -14,8 +16,6 @@ class ProdukDetail extends StatefulWidget {
 }
 
 class _ProdukDetailState extends State<ProdukDetail> {
-  bool _isDeleting = false;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,29 +23,25 @@ class _ProdukDetailState extends State<ProdukDetail> {
         title: const Text('Detail Produk'),
       ),
       body: Center(
-        child: _isDeleting
-            ? const CircularProgressIndicator()
-            : Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Text(
-                    "Kode : ${widget.produk?.kodeProduk ?? ''}",
-                    style: const TextStyle(fontSize: 20.0),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Nama : ${widget.produk?.namaProduk ?? ''}",
-                    style: const TextStyle(fontSize: 18.0),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Harga : Rp. ${widget.produk?.hargaProduk?.toString() ?? ''}",
-                    style: const TextStyle(fontSize: 18.0),
-                  ),
-                  const SizedBox(height: 24),
-                  _tombolHapusEdit(),
-                ],
-              ),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              "Kode : ${widget.produk!.kodeProduk}",
+              style: const TextStyle(fontSize: 20.0),
+            ),
+            Text(
+              "Nama : ${widget.produk!.namaProduk}",
+              style: const TextStyle(fontSize: 18.0),
+            ),
+            Text(
+              "Harga : Rp. ${widget.produk!.hargaProduk.toString()}",
+              style: const TextStyle(fontSize: 18.0),
+            ),
+            const SizedBox(height: 16),
+            _tombolHapusEdit()
+          ],
+        ),
       ),
     );
   }
@@ -57,8 +53,8 @@ class _ProdukDetailState extends State<ProdukDetail> {
         // Tombol Edit
         OutlinedButton(
           child: const Text("EDIT"),
-          onPressed: () async {
-            final result = await Navigator.push(
+          onPressed: () {
+            Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => ProdukForm(
@@ -66,16 +62,11 @@ class _ProdukDetailState extends State<ProdukDetail> {
                 ),
               ),
             );
-            if (result == true && mounted) {
-              // Jika baru diupdate, kita refresh detail atau kembali ke halaman list
-              Navigator.pop(context, true);
-            }
           },
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
         // Tombol Hapus
         OutlinedButton(
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
           child: const Text("DELETE"),
           onPressed: () => confirmHapus(),
         ),
@@ -92,7 +83,19 @@ class _ProdukDetailState extends State<ProdukDetail> {
           child: const Text("Ya"),
           onPressed: () {
             Navigator.pop(context); // tutup dialog
-            _prosesHapus();
+            ProdukBloc.deleteProduk(id: widget.produk!.id).then((value) {
+              if (!mounted) return;
+              Navigator.of(context).pushReplacement(MaterialPageRoute(
+                  builder: (BuildContext context) => const ProdukPage()));
+            }, onError: (error) {
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => const WarningDialog(
+                  description: "Hapus gagal, silahkan coba lagi",
+                ),
+              );
+            });
           },
         ),
         // tombol batal
@@ -104,33 +107,5 @@ class _ProdukDetailState extends State<ProdukDetail> {
     );
 
     showDialog(builder: (context) => alertDialog, context: context);
-  }
-
-  void _prosesHapus() {
-    setState(() {
-      _isDeleting = true;
-    });
-
-    ApiService.deleteProduk(widget.produk!.id!).then((success) {
-      if (!mounted) return;
-      if (success) {
-        Navigator.pop(context, true);
-      } else {
-        setState(() {
-          _isDeleting = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gagal menghapus produk")),
-        );
-      }
-    }).catchError((error) {
-      if (!mounted) return;
-      setState(() {
-        _isDeleting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Koneksi Error: $error")),
-      );
-    });
   }
 }

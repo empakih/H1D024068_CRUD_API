@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/helpers/api.dart';
+import 'package:tokokita/bloc/registrasi_bloc.dart';
+import 'package:tokokita/widget/success_dialog.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 class RegistrasiPage extends StatefulWidget {
   const RegistrasiPage({super.key});
@@ -34,7 +36,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -44,7 +46,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
                 _emailTextField(),
                 _passwordTextField(),
                 _passwordKonfirmasiTextField(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buttonRegistrasi(),
               ],
             ),
@@ -61,7 +63,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
       keyboardType: TextInputType.text,
       controller: _namaTextboxController,
       validator: (value) {
-        if (value == null || value.trim().length < 3) {
+        if (value == null || value.length < 3) {
           return "Nama harus diisi minimal 3 karakter";
         }
         return null;
@@ -69,21 +71,20 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
     );
   }
 
-  // Membuat Textbox Email
+  // Membuat Textbox email
   Widget _emailTextField() {
     return TextFormField(
       decoration: const InputDecoration(labelText: "Email"),
       keyboardType: TextInputType.emailAddress,
       controller: _emailTextboxController,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (value == null || value.isEmpty) {
           return 'Email harus diisi';
         }
-        // Validasi format email
         Pattern pattern =
             r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
         RegExp regex = RegExp(pattern.toString());
-        if (!regex.hasMatch(value.trim())) {
+        if (!regex.hasMatch(value)) {
           return "Email tidak valid";
         }
         return null;
@@ -91,7 +92,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
     );
   }
 
-  // Membuat Textbox Password
+  // Membuat Textbox password
   Widget _passwordTextField() {
     return TextFormField(
       decoration: const InputDecoration(labelText: "Password"),
@@ -107,7 +108,7 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
     );
   }
 
-  // Membuat Textbox Konfirmasi Password
+  // membuat textbox Konfirmasi Password
   Widget _passwordKonfirmasiTextField() {
     return TextFormField(
       decoration: const InputDecoration(labelText: "Konfirmasi Password"),
@@ -125,89 +126,50 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
 
   // Membuat Tombol Registrasi
   Widget _buttonRegistrasi() {
-    return _isLoading
-        ? const CircularProgressIndicator()
-        : SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              child: const Text("Registrasi"),
-              onPressed: () {
-                var validate = _formKey.currentState!.validate();
-                if (validate) {
-                  _prosesRegistrasi();
-                }
-              },
-            ),
-          );
+    return ElevatedButton(
+      child: const Text("Registrasi"),
+      onPressed: () {
+        var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) _submit();
+        }
+      },
+    );
   }
 
-  void _prosesRegistrasi() {
+  void _submit() {
+    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
     });
-
-    ApiService.registrasi(
-      nama: _namaTextboxController.text.trim(),
-      email: _emailTextboxController.text.trim(),
+    RegistrasiBloc.registrasi(
+      nama: _namaTextboxController.text,
+      email: _emailTextboxController.text,
       password: _passwordTextboxController.text,
-    ).then((res) {
+    ).then((value) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (res.status == true) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text("Sukses"),
-            content: Text(res.data ?? "Registrasi Berhasil"),
-            actions: [
-              ElevatedButton(
-                child: const Text("OK"),
-                onPressed: () {
-                  Navigator.pop(context); // tutup dialog
-                  Navigator.pop(context); // kembali ke login
-                },
-              )
-            ],
-          ),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text("Gagal"),
-            content: Text(res.data ?? "Registrasi gagal, coba lagi"),
-            actions: [
-              ElevatedButton(
-                child: const Text("OK"),
-                onPressed: () => Navigator.pop(context),
-              )
-            ],
-          ),
-        );
-      }
-    }).catchError((error) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-
       showDialog(
         context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text("Koneksi Error"),
-          content: Text("Gagal terhubung ke server API:\n$error"),
-          actions: [
-            ElevatedButton(
-              child: const Text("OK"),
-              onPressed: () => Navigator.pop(context),
-            )
-          ],
+        barrierDismissible: false,
+        builder: (BuildContext context) => SuccessDialog(
+          description: "Registrasi berhasil, silahkan login",
+          okClick: () {
+            Navigator.pop(context);
+          },
         ),
       );
+    }, onError: (error) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => const WarningDialog(
+          description: "Registrasi gagal, silahkan coba lagi",
+        ),
+      );
+    });
+    setState(() {
+      _isLoading = false;
     });
   }
 }

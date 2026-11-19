@@ -8,7 +8,7 @@ class ApiUrl {
   static const String createProduk = '$baseUrl/produk';
 
   static String updateProduk(int id) {
-    return '$baseUrl/produk/$id';
+    return '$baseUrl/produk/$id/update';
   }
 
   static String showProduk(int id) {
@@ -19,4 +19,3 @@ class ApiUrl {
     return '$baseUrl/produk/$id';
   }
 }
-
