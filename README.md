@@ -24,9 +24,14 @@ Praktikum ini mengimplementasikan integrasi arsitektur sistem client-server mela
 
 ---
 
-## 2. Demo Video
+## 2. Demo Video Aplikasi
 
-https://github.com/user-attachments/assets/497b3188-a6f5-4dae-8e44-9f606c18fa3d
+Berikut adalah dokumentasi rekaman pengujian aplikasi secara bertahap:
+
+| Tahap Praktikum | Cakupan Fitur | Tautan Demo Video |
+|---|---|---|
+| **Tahap 1: Modul Dasar (REST API & UI)** | Antarmuka Form Registrasi/Login & Integrasi REST API CodeIgniter 4 Awal | 📹 [Tonton Demo Video Tahap 1](https://github.com/user-attachments/assets/497b3188-a6f5-4dae-8e44-9f606c18fa3d) |
+| **Tahap 2: Modul Lanjutan (BLoC & Dialog)** | Pola Arsitektur BLoC, Helper AppException, Custom Dialog (`SuccessDialog` & `WarningDialog`), Auto-Login, dan Full Operasi CRUD | 📹 *[Tonton Demo Video Tahap 2](PASTE_LINK_VIDEO_BARU_DI_SINI)* |
 
 ---
 
