@@ -8,11 +8,23 @@ class RegistrasiController extends RestfulController
 {
     public function registrasi()
     {
-        $json = $this->request->getJSON(true);
+        $nama = $this->request->getVar('nama');
+        $email = $this->request->getVar('email');
+        $password = $this->request->getVar('password');
+
+        if ($nama === null || $email === null || $password === null) {
+            try {
+                $json = $this->request->getJSON(true);
+                $nama = $nama ?? ($json['nama'] ?? null);
+                $email = $email ?? ($json['email'] ?? null);
+                $password = $password ?? ($json['password'] ?? null);
+            } catch (\Throwable $e) {}
+        }
+
         $data = [
-            'nama' => $json['nama'] ?? $this->request->getVar('nama'),
-            'email' => $json['email'] ?? $this->request->getVar('email'),
-            'password' => password_hash($json['password'] ?? $this->request->getVar('password'), PASSWORD_DEFAULT)
+            'nama' => $nama,
+            'email' => $email,
+            'password' => password_hash($password ?? '', PASSWORD_DEFAULT)
         ];
 
         $model = new MRegistrasi();
@@ -20,4 +32,3 @@ class RegistrasiController extends RestfulController
         return $this->responseHasil(200, true, "Registrasi Berhasil");
     }
 }
-

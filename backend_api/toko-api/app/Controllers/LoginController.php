@@ -9,9 +9,16 @@ class LoginController extends RestfulController
 {
     public function login()
     {
-        $json = $this->request->getJSON(true);
-        $email = $json['email'] ?? $this->request->getVar('email');
-        $password = $json['password'] ?? $this->request->getVar('password');
+        $email = $this->request->getVar('email');
+        $password = $this->request->getVar('password');
+
+        if ($email === null || $password === null) {
+            try {
+                $json = $this->request->getJSON(true);
+                $email = $email ?? ($json['email'] ?? null);
+                $password = $password ?? ($json['password'] ?? null);
+            } catch (\Throwable $e) {}
+        }
 
         $model = new MMember();
         $member = $model->where(['email' => $email])->first();
@@ -49,4 +56,3 @@ class LoginController extends RestfulController
         return $str;
     }
 }
-

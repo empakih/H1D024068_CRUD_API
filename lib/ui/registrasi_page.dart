@@ -148,18 +148,34 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
       password: _passwordTextboxController.text,
     ).then((value) {
       if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) => SuccessDialog(
-          description: "Registrasi berhasil, silahkan login",
-          okClick: () {
-            Navigator.pop(context);
-          },
-        ),
-      );
+      setState(() {
+        _isLoading = false;
+      });
+      if (value.code == 200) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => SuccessDialog(
+            description: "Registrasi berhasil, silahkan login",
+            okClick: () {
+              Navigator.pop(context);
+            },
+          ),
+        );
+      } else {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => WarningDialog(
+            description: value.data ?? "Registrasi gagal, silahkan coba lagi",
+          ),
+        );
+      }
     }, onError: (error) {
       if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -167,9 +183,6 @@ class _RegistrasiPageState extends State<RegistrasiPage> {
           description: "Registrasi gagal, silahkan coba lagi",
         ),
       );
-    });
-    setState(() {
-      _isLoading = false;
     });
   }
 }

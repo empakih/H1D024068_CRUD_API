@@ -109,6 +109,10 @@ class _LoginPageState extends State<LoginPage> {
       email: _emailTextboxController.text,
       password: _passwordTextboxController.text,
     ).then((value) async {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
       if (value.code == 200 && value.token != null) {
         await UserInfo().setToken(value.token.toString());
         await UserInfo().setUserID(int.parse(value.userID.toString()));
@@ -118,7 +122,6 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (context) => const ProdukPage()),
         );
       } else {
-        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -129,6 +132,9 @@ class _LoginPageState extends State<LoginPage> {
       }
     }, onError: (error) {
       if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -136,9 +142,6 @@ class _LoginPageState extends State<LoginPage> {
           description: "Login gagal, silahkan coba lagi",
         ),
       );
-    });
-    setState(() {
-      _isLoading = false;
     });
   }
 

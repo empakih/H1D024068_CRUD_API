@@ -6,13 +6,26 @@ use App\Models\MProduk;
 
 class ProdukController extends RestfulController
 {
+    private function getField($key)
+    {
+        $val = $this->request->getVar($key);
+        if ($val !== null) {
+            return $val;
+        }
+        try {
+            $json = $this->request->getJSON(true);
+            return $json[$key] ?? null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public function create()
     {
-        $json = $this->request->getJSON(true);
         $data = [
-            'kode_produk' => $json['kode_produk'] ?? $this->request->getVar('kode_produk'),
-            'nama_produk' => $json['nama_produk'] ?? $this->request->getVar('nama_produk'),
-            'harga'       => $json['harga'] ?? $this->request->getVar('harga')
+            'kode_produk' => $this->getField('kode_produk'),
+            'nama_produk' => $this->getField('nama_produk'),
+            'harga'       => $this->getField('harga')
         ];
 
         $model = new MProduk();
@@ -37,11 +50,10 @@ class ProdukController extends RestfulController
 
     public function ubah($id = null)
     {
-        $json = $this->request->getJSON(true);
         $data = [
-            'kode_produk' => $json['kode_produk'] ?? $this->request->getVar('kode_produk'),
-            'nama_produk' => $json['nama_produk'] ?? $this->request->getVar('nama_produk'),
-            'harga'       => $json['harga'] ?? $this->request->getVar('harga')
+            'kode_produk' => $this->getField('kode_produk'),
+            'nama_produk' => $this->getField('nama_produk'),
+            'harga'       => $this->getField('harga')
         ];
 
         $model = new MProduk();
@@ -59,4 +71,3 @@ class ProdukController extends RestfulController
         return $this->responseHasil(200, true, $produk);
     }
 }
-
